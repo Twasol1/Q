@@ -27,7 +27,7 @@ app.post('/api/register', (req, res) => {
     const { subdomain, targetUrl } = req.body;
 
     if (!subdomain || !targetUrl) {
-        return res.status(400).json({ error: 'يرجى إدخال جميع البيانات المطلوب.' });
+        return res.status(400).json({ error: 'يرجى إدخال جميع البيانات المطلوبة.' });
     }
 
     const cleanSub = subdomain.toLowerCase().trim();
@@ -44,6 +44,33 @@ app.post('/api/register', (req, res) => {
 
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
     res.json({ success: true, message: `تم تسجيل النطاق ${cleanSub} بنجاح!` });
+});
+
+// ==========================================
+// مسار التوجيه الديناميكي (المفقود سابقاً)
+// ==========================================
+app.get('/:slug', (req, res) => {
+    const cleanSub = req.params.slug.toLowerCase().trim();
+    
+    // قراءة البيانات من ملف domains.json
+    if (fs.existsSync(DB_FILE)) {
+        const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        
+        if (data[cleanSub]) {
+            let target = data[cleanSub].targetUrl;
+            
+            // التأكد من أن الرابط يبدأ بـ http:// أو https:// لتجنب أخطاء التوجيه
+            if (!target.startsWith('http://') && !target.startsWith('https://')) {
+                target = 'https://' + target;
+            }
+            
+            // تنفيذ إعادة التوجيه الفوري إلى الرابط المستهدف
+            return res.redirect(target);
+        }
+    }
+    
+    // إذا لم يتم العثور على النطاق في قاعدة البيانات
+    return res.status(404).send('عذراً، هذا النطاق غير موجود أو لم يتم حجزه بعد.');
 });
 
 app.listen(PORT, () => {
