@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مركز إدارة النطاقات الفرعية</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; text-align: center; }
+        .card { background: #1e293b; max-width: 400px; margin: auto; padding: 20px; border-radius: 12px; }
+        input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
+        button { background: #2563eb; color: white; font-weight: bold; cursor: pointer; }
+        #msg { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>حجز نطاق فرعي مجاني</h2>
+        <input type="text" id="subdomain" placeholder="اسم النطاق (مثال: myapp)">
+        <input type="url" id="targetUrl" placeholder="الرابط المستهدف (https://...)">
+        <button onclick="register()">حجز النطاق</button>
+        <div id="msg"></div>
+    </div>
+
+    <script>
+        async function register() {
+            const subdomain = document.getElementById('subdomain').value;
+            const targetUrl = document.getElementById('targetUrl').value;
+            const msg = document.getElementById('msg');
+
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subdomain, targetUrl })
+            });
+
+            const data = await res.json();
+            msg.innerText = data.message || data.error;
+            msg.style.color = data.success ? '#4ade80' : '#f87171';
+        }
+    </script>
+</body>
+</html>
