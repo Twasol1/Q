@@ -3,39 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مركز إدارة النطاقات الفرعية</title>
+    <title>منصة الاستثمار الرقمية - حسابي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; text-align: center; }
-        .card { background: #1e293b; max-width: 400px; margin: auto; padding: 20px; border-radius: 12px; }
-        input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
-        button { background: #2563eb; color: white; font-weight: bold; cursor: pointer; }
-        #msg { margin-top: 10px; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #0b0e11; color: #eaecef; }
+        .okx-card { background: #181a20; border: 1px solid #2b313a; }
+        .okx-input { background: #2b313a; border: 1px solid #474d57; color: #fff; }
+        .okx-input:focus { border-color: #f0b90b; outline: none; }
+        .okx-btn { background: #f0b90b; color: #000; font-weight: bold; }
+        .okx-btn:hover { background: #d9a307; }
     </style>
 </head>
-<body>
-    <div class="card">
-        <h2>حجز نطاق فرعي مجاني</h2>
-        <input type="text" id="subdomain" placeholder="اسم النطاق (مثال: myapp)">
-        <input type="url" id="targetUrl" placeholder="الرابط المستهدف (https://...)">
-        <button onclick="register()">حجز النطاق</button>
-        <div id="msg"></div>
-    </div>
+<body class="min-h-screen pb-20">
+
+    <script type="text/javascript">
+        (function(){
+            emailjs.init("Bqw-4kCfRjUTU8Rx");
+        })();
+    </script>
+
+    <header class="okx-card p-4 flex justify-between items-center border-b border-gray-800">
+        <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold text-yellow-500">PRO-MINING</span>
+            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">VIP</span>
+        </div>
+        <div id="userInfoHeader" class="text-xs text-gray-400 hidden">
+            <span id="userEmailNav"></span>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-4">
+        <div id="authSection" class="okx-card p-6 rounded-xl space-y-4">
+            <div class="flex border-b border-gray-700">
+                <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="w-1/2 py-2 text-center border-b-2 border-yellow-500 font-bold text-yellow-500">تسجيل الدخول</button>
+                <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="w-1/2 py-2 text-center border-b-2 border-transparent text-gray-400">حساب جديد</button>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-400">البريد الإلكتروني</label>
+                    <input type="email" id="loginEmail" required class="w-full p-2.5 rounded okx-input text-sm mt-1">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400">كلمة المرور</label>
+                    <input type="password" id="loginPass" required class="w-full p-2.5 rounded okx-input text-sm mt-1">
+                </div>
+                <div class="text-left">
+                    <button type="button" onclick="showForgotPassword()" class="text-xs text-yellow-500 hover:underline">نسيت كلمة المرور؟</button>
+                </div>
+                <button type="submit" class="w-full py-3 rounded okx-btn text-sm">دخول</button>
+            </form>
+
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-3 hidden">
+                <div>
+                    <label class="text-xs text-gray-400">البريد الإلكتروني</label>
+                    <input type="email" id="regEmail" required class="w-full p-2.5 rounded okx-input text-sm mt-1">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400">كلمة المرور</label>
+                    <input type="password" id="regPass" required class="w-full p-2.5 rounded okx-input text-sm mt-1">
+                </div>
+                <button type="submit" class="w-full py-3 rounded okx-btn text-sm">إنشاء حساب وإرسال رمز التفعيل</button>
+            </form>
+
+            <form id="otpForm" onsubmit="handleVerifyOTP(event)" class="space-y-3 hidden">
+                <div class="text-center">
+                    <p class="text-xs text-green-400 mb-2">تم إرسال رمز التفعيل إلى بريدك الإلكتروني!</p>
+                    <label class="text-xs text-gray-400">أدخل رمز OTP المتكون من 6 أرقام</label>
+                    <input type="text" id="otpInput" maxLength="6" required class="w-full p-2.5 rounded okx-input text-center text-lg tracking-widest mt-1">
+                </div>
+                <button type="submit" class="w-full py-3 rounded okx-btn text-sm">تأكيد التفعيل والدخول</button>
+            </form>
+
+            <form id="forgotPassForm" onsubmit="handleResetPasswordRequest(event)" class="space-y-3 hidden">
+                <div>
+                    <label class="text-xs text-gray-400">أدخل بريدك الإلكتروني لاستعادة الحساب</label>
+                    <input type="email" id="resetEmailInput" required class="w-full p-2.5 rounded okx-input text-sm mt-1">
+                </div>
+                <button type="submit" class="w-full py-3 rounded okx-btn text-sm">إرسال كود استعادة كلمة المرور</button>
+                <button type="button" onclick="switchAuthTab('login')" class="w-full py-2 text-xs text-gray-400">إلغاء والعودة</button>
+            </form>
+        </div>
+
+        <div id="dashboardSection" class="space-y-4 hidden">
+            <div class="okx-card p-5 rounded-xl flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-400">إجمالي الرصيد (USDT)</p>
+                    <h2 id="userBalance" class="text-3xl font-bold text-yellow-500 mt-1">$0.00</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="alert('نافذة الإيداع')" class="px-3 py-2 bg-green-600 text-white rounded text-xs font-bold">إيداع</button>
+                    <button onclick="alert('نافذة السحب')" class="px-3 py-2 bg-red-600 text-white rounded text-xs font-bold">سحب</button>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        async function register() {
-            const subdomain = document.getElementById('subdomain').value;
-            const targetUrl = document.getElementById('targetUrl').value;
-            const msg = document.getElementById('msg');
+        const EMAILJS_PUBLIC_KEY = "Bqw-4kCfRjUTU8Rx";
+        const EMAILJS_SERVICE_ID = "service_3m9tyqq";
+        const EMAILJS_TEMPLATE_ID = "Template_auxk061";
 
-            const res = await fetch('/api/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subdomain, targetUrl })
+        let currentOTP = null;
+        let pendingUser = null;
+
+        function switchAuthTab(tab) {
+            document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+            document.getElementById('otpForm').classList.add('hidden');
+            document.getElementById('forgotPassForm').classList.add('hidden');
+        }
+
+        function showForgotPassword() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('forgotPassForm').classList.remove('hidden');
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPass').value;
+
+            currentOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            pendingUser = { email, password };
+
+            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                to_email: email,
+                otp_code: currentOTP,
+                message: `رمز تفعيل حسابك الاستثماري هو: ${currentOTP}`
+            }).then(() => {
+                alert("تم إرسال كود التفعيل لبريدك الإلكتروني بنجاح!");
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('otpForm').classList.remove('hidden');
+            }).catch((err) => {
+                console.error("EmailJS Error:", err);
+                alert("رمز التفعيل الاحتياطي: " + currentOTP);
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('otpForm').classList.remove('hidden');
             });
+        }
 
-            const data = await res.json();
-            msg.innerText = data.message || data.error;
-            msg.style.color = data.success ? '#4ade80' : '#f87171';
+        function handleVerifyOTP(e) {
+            e.preventDefault();
+            const enteredOTP = document.getElementById('otpInput').value;
+
+            if (enteredOTP === currentOTP) {
+                alert("تم تفعيل حسابك بنجاح!");
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('userEmailNav').innerText = pendingUser.email;
+                document.getElementById('userInfoHeader').classList.remove('hidden');
+            } else {
+                alert("رمز OTP غير صحيح!");
+            }
+        }
+
+        function handleResetPasswordRequest(e) {
+            e.preventDefault();
+            const email = document.getElementById('resetEmailInput').value;
+            const resetOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                to_email: email,
+                otp_code: resetOTP,
+                message: `رمز استعادة كلمة المرور الخاص بك هو: ${resetOTP}`
+            }).then(() => {
+                alert("تم إرسال كود استعادة كلمة المرور إلى بريدك!");
+                switchAuthTab('login');
+            }).catch(() => {
+                alert("رمز الاستعادة المباشر: " + resetOTP);
+            });
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
         }
     </script>
 </body>
