@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم الأدمن - البريد</title>
+    <title>لوحة تحكم الأدمن - ahmad.html</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
@@ -12,7 +12,7 @@
         .okx-input { background: #2b313a; border: 1px solid #474d57; color: #fff; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-8">
 
     <script type="text/javascript">
         (function(){
@@ -20,22 +20,74 @@
         })();
     </script>
 
-    <div class="max-w-4xl mx-auto space-y-6">
-        <h1 class="text-2xl font-bold text-yellow-500 border-b border-gray-800 pb-3">مركز إرسال الرسائل الإدارية</h1>
+    <div class="max-w-5xl mx-auto space-y-6">
+        <header class="okx-card p-4 rounded-xl flex justify-between items-center border-b border-yellow-500/30">
+            <div>
+                <h1 class="text-xl font-bold text-yellow-500">لوحة الإدارة المركزية (Ahmad Admin Panel)</h1>
+                <p class="text-xs text-gray-400">إدارة المستخدمين، التوثيق، وأكواد OTP المباشرة</p>
+            </div>
+            <span class="text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/30">سيرفر إرسال البريد: نشط</span>
+        </header>
 
-        <div class="okx-card p-6 rounded-xl space-y-4">
-            <h3 class="text-lg font-bold text-white">إرسال بريد إلكتروني مباشر لمستخدم</h3>
-            <form onsubmit="sendAdminEmail(event)" class="space-y-3">
-                <div>
-                    <label class="text-xs text-gray-400">البريد الإلكتروني للمستلم</label>
-                    <input type="email" id="targetEmail" required class="w-full p-2.5 rounded okx-input text-sm mt-1" placeholder="user@example.com">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Send Direct Email Box -->
+            <div class="okx-card p-5 rounded-xl space-y-4">
+                <h3 class="text-sm font-bold text-white border-b border-gray-800 pb-2">إرسال رسالة بريد مباشر للمستخدم</h3>
+                <form onsubmit="sendAdminEmail(event)" class="space-y-3">
+                    <div>
+                        <label class="text-xs text-gray-400">البريد الإلكتروني للمستلم</label>
+                        <input type="email" id="targetEmail" required class="w-full p-2.5 rounded okx-input text-sm mt-1" placeholder="user@example.com">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">نص الرسالة أو كود خاص</label>
+                        <textarea id="emailMessage" rows="3" required class="w-full p-2.5 rounded okx-input text-sm mt-1" placeholder="اكتب نص البريد المراد إرساله..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded text-xs">إرسال البريد الآن</button>
+                </form>
+            </div>
+
+            <!-- OTP Code Live Center -->
+            <div class="okx-card p-5 rounded-xl space-y-3">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                    <h3 class="text-sm font-bold text-white">مركز أرقام التفعيل (OTP Live Feed)</h3>
+                    <button onclick="loadLastOTP()" class="text-xs text-yellow-500 hover:underline">تحديث</button>
                 </div>
-                <div>
-                    <label class="text-xs text-gray-400">نص الرسالة</label>
-                    <textarea id="emailMessage" rows="4" required class="w-full p-2.5 rounded okx-input text-sm mt-1" placeholder="اكتب الرسالة هنا..."></textarea>
+                <div id="otpBox" class="p-4 bg-gray-800/40 rounded border border-gray-700 text-center space-y-2">
+                    <p class="text-xs text-gray-400">آخر رمز تفعيل تم إصداره للنظام:</p>
+                    <div id="otpValue" class="text-2xl font-mono font-bold text-green-400">------</div>
+                    <p id="otpUser" class="text-[11px] text-gray-400">لا يوجد تسجيل جديد في الجلسة الحالية</p>
                 </div>
-                <button type="submit" class="px-6 py-2.5 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 text-sm">إرسال الإيميل الآن</button>
-            </form>
+            </div>
+
+        </div>
+
+        <!-- Management Tables -->
+        <div class="okx-card p-5 rounded-xl space-y-4">
+            <h3 class="text-sm font-bold text-white border-b border-gray-800 pb-2">طلبات التوثيق (KYC) وقواعد السحب ($10)</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs text-gray-300">
+                    <thead class="bg-gray-800 text-gray-400 border-b border-gray-700">
+                        <tr>
+                            <th class="p-2.5">المستخدم</th>
+                            <th class="p-2.5">حالة التوثيق</th>
+                            <th class="p-2.5">السحب التجريبي ($10)</th>
+                            <th class="p-2.5">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-800/60">
+                            <td class="p-2.5">user1@gmail.com</td>
+                            <td class="p-2.5"><span class="text-yellow-500">قيد الانتظار</span></td>
+                            <td class="p-2.5"><span class="text-green-400">لم يستهلك</span></td>
+                            <td class="p-2.5 flex gap-1">
+                                <button onclick="alert('تم قبول التوثيق!')" class="px-2 py-1 bg-green-600 text-white rounded text-[10px]">قبول التوثيق</button>
+                                <button onclick="alert('تم رفض التوثيق!')" class="px-2 py-1 bg-red-600 text-white rounded text-[10px]">رفض</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -53,12 +105,23 @@
                 otp_code: "NOTICE",
                 message: message
             }).then(() => {
-                alert("تم إرسال الرسالة بنجاح إلى البريد: " + toEmail);
+                alert("تم إرسال الرسالة بنجاح إلى: " + toEmail);
                 document.getElementById('emailMessage').value = '';
             }).catch((err) => {
                 alert("حدث خطأ أثناء الإرسال: " + JSON.stringify(err));
             });
         }
+
+        function loadLastOTP() {
+            const data = localStorage.getItem('last_generated_otp');
+            if (data) {
+                const parsed = JSON.parse(data);
+                document.getElementById('otpValue').innerText = parsed.otp;
+                document.getElementById('otpUser').innerText = `المستخدم: ${parsed.email} (${parsed.time})`;
+            }
+        }
+
+        window.onload = loadLastOTP;
     </script>
 </body>
 </html>
