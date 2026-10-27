@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الأدمن - البريد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #0b0e11; color: #eaecef; }
+        .okx-card { background: #181a20; border: 1px solid #2b313a; }
+        .okx-input { background: #2b313a; border: 1px solid #474d57; color: #fff; }
+    </style>
+</head>
+<body class="p-6">
+
+    <script type="text/javascript">
+        (function(){
+            emailjs.init("Bqw-4kCfRjUTU8Rx");
+        })();
+    </script>
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        <h1 class="text-2xl font-bold text-yellow-500 border-b border-gray-800 pb-3">مركز إرسال الرسائل الإدارية</h1>
+
+        <div class="okx-card p-6 rounded-xl space-y-4">
+            <h3 class="text-lg font-bold text-white">إرسال بريد إلكتروني مباشر لمستخدم</h3>
+            <form onsubmit="sendAdminEmail(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-400">البريد الإلكتروني للمستلم</label>
+                    <input type="email" id="targetEmail" required class="w-full p-2.5 rounded okx-input text-sm mt-1" placeholder="user@example.com">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400">نص الرسالة</label>
+                    <textarea id="emailMessage" rows="4" required class="w-full p-2.5 rounded okx-input text-sm mt-1" placeholder="اكتب الرسالة هنا..."></textarea>
+                </div>
+                <button type="submit" class="px-6 py-2.5 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 text-sm">إرسال الإيميل الآن</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const EMAILJS_SERVICE_ID = "service_3m9tyqq";
+        const EMAILJS_TEMPLATE_ID = "Template_auxk061";
+
+        function sendAdminEmail(e) {
+            e.preventDefault();
+            const toEmail = document.getElementById('targetEmail').value;
+            const message = document.getElementById('emailMessage').value;
+
+            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                to_email: toEmail,
+                otp_code: "NOTICE",
+                message: message
+            }).then(() => {
+                alert("تم إرسال الرسالة بنجاح إلى البريد: " + toEmail);
+                document.getElementById('emailMessage').value = '';
+            }).catch((err) => {
+                alert("حدث خطأ أثناء الإرسال: " + JSON.stringify(err));
+            });
+        }
+    </script>
+</body>
+</html>
