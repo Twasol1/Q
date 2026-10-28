@@ -19,70 +19,82 @@ const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[x,v]of Objec
 const app=document.getElementById('app');
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth=firebase.auth(),db=firebase.firestore(),TS=firebase.firestore.FieldValue.serverTimestamp;
-let admin=false,checked=false,subs=[],lastKey='',loginErr='';
+let admin=false,checking=true,subs=[],lastKey='',loginErr='',cfg={name:'SAFETY',tagline:'',whatsapp:'',cats:[]};
+const safeImg=u=>/^(data:image\/|https:\/\/)/.test(u||'')?'url("'+u.replace(/["\\\n]/g,'')+'")':'';
 
 auth.onAuthStateChanged(async u=>{
-  admin=false;checked=false;render();
+  admin=false;checking=!!u;render();
   if(u){
-    try{admin=(await db.doc('admins/'+u.uid).get()).exists}catch(_){admin=false}
+    try{admin=(await db.doc('admins/'+u.uid).get()).exists}catch(_){}
     if(!admin){loginErr='هذا الحساب ليس مشرفاً.';await auth.signOut();return}
   }
-  checked=true;render();
+  checking=false;render();
 });
 window.addEventListener('hashchange',render);
 
 function render(){
-  const key=[checked,admin,location.hash,loginErr].join('|');
+  const key=[checking,admin,location.hash,loginErr].join('|');
   if(key===lastKey)return;lastKey=key;
   subs.forEach(u=>u());subs=[];app.replaceChildren();
-  if(!checked&&auth.currentUser)return app.append(h('div',{class:'center'},'جارٍ التحقق…'));
+  if(checking)return app.append(h('div',{class:'center'},'جارٍ التحقق…'));
   if(!admin)return viewLogin();
-  const p=location.hash.split('/')[1]||'users';
-  const tabs=[['users','المستخدمون'],['rooms','الغرف'],['app','التطبيق']];
-  const body=h('main',{});
-  app.append(h('header',{class:'top'},h('span',{style:'flex:1'},'لوحة الإدارة'),h('button',{class:'alt',onclick:()=>auth.signOut()},'خروج')),body,
-    h('nav',{class:'tabs'},tabs.map(([k,t])=>h('a',{href:'#/'+k,class:k===p?'on':''},t))));
-  ({users:viewUsers,rooms:viewRooms,app:viewApp}[p]||viewUsers)(body);
+  const p=location.hash==='#/settings'?'settings':'products';
+  const body=h('main',{class:'pad'});
+  app.append(h('header',{class:'top'},h('span',{style:'flex:1'},'لوحة الإدارة'),h('button',{class:'alt',onclick:()=>auth.signOut()},'خروج')),
+    h('nav',{class:'tabs'},h('a',{href:'#/products',class:p==='products'?'on':''},'المنتجات'),h('a',{href:'#/settings',class:p==='settings'?'on':''},'الإعدادات')),body);
+  p==='settings'?viewSettings(body):viewProducts(body);
 }
-
 function viewLogin(){
   const err=h('p',{class:'err'},loginErr);loginErr='';
   const email=h('input',{type:'email',placeholder:'البريد الإلكتروني',dir:'ltr',autocomplete:'email'});
   const pass=h('input',{type:'password',placeholder:'كلمة المرور',dir:'ltr',autocomplete:'current-password'});
-  app.append(h('div',{class:'center',style:'width:100%'},h('h2',{},'لوحة الإدارة'),email,pass,err,
+  app.append(h('div',{class:'center'},h('h2',{},'لوحة الإدارة'),email,pass,err,
     h('button',{onclick:async()=>{err.textContent='';try{await auth.signInWithEmailAndPassword(email.value.trim(),pass.value)}catch(_){err.textContent='بيانات الدخول غير صحيحة.'}}},'دخول')));
 }
+function toData(file){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>{const s=Math.min(1,700/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.72))};i.onerror=no;i.src=URL.createObjectURL(file)})}
 
-function viewUsers(body){
-  const list=h('div',{style:'display:flex;flex-direction:column;gap:10px'});body.append(list);
-  subs.push(db.collection('users').orderBy('createdAt','desc').limit(200).onSnapshot(s=>{
-    list.replaceChildren();
-    s.forEach(d=>{const u=d.data();
-      list.append(h('div',{class:'row'},h('span',{},u.avatar||'👤'),
-        h('span',{class:'grow'},u.name||'—',h('div',{class:'muted',dir:'ltr'},d.id)),
-        h('button',{class:u.banned?'alt':'danger',onclick:()=>db.doc('users/'+d.id).update({banned:!u.banned})},u.banned?'رفع الحظر':'حظر')))});
-    if(s.empty)list.append(h('p',{class:'muted'},'لا يوجد مستخدمون بعد.'));
-  }));
-}
-
-function viewRooms(body){
-  const name=h('input',{placeholder:'اسم غرفة جديدة',maxlength:'40'});
-  const list=h('div',{style:'display:flex;flex-direction:column;gap:10px'});
-  body.append(name,h('button',{onclick:async()=>{const n=name.value.trim();if(!n)return;await db.collection('rooms').add({name:n,createdAt:TS()});name.value=''}},'إضافة غرفة'),list);
-  subs.push(db.collection('rooms').orderBy('createdAt').onSnapshot(s=>{
-    list.replaceChildren();
-    s.forEach(d=>list.append(h('div',{class:'row'},h('span',{class:'grow'},d.data().name),
-      h('button',{class:'danger',onclick:()=>{if(confirm('حذف الغرفة؟'))db.doc('rooms/'+d.id).delete()}},'حذف'))));
-  }));
-}
-
-function viewApp(body){
-  const msg=h('textarea',{rows:'3',placeholder:'رسالة تظهر للمستخدمين عند إيقاف التطبيق'});
-  const on=h('input',{type:'checkbox',style:'width:auto'});
+function viewProducts(body){
+  let editId=null,img='';
+  const name=h('input',{placeholder:'اسم المنتج',maxlength:'100'});
+  const cat=h('select');
+  const price=h('input',{placeholder:'السعر (مثال: 120$)',maxlength:'40'});
+  const desc=h('textarea',{rows:'4',placeholder:'الوصف والمواصفات',maxlength:'2000'});
+  const avail=h('input',{type:'checkbox',checked:'',style:'width:auto'});
+  const pic=h('div',{class:'big',style:'max-width:200px'});
+  const file=h('input',{type:'file',accept:'image/*'});
   const st=h('p',{class:'muted'});
-  body.append(h('label',{class:'row'},on,h('span',{class:'grow'},'التطبيق يعمل (ألغِ التحديد لإيقافه للجميع فوراً)')),msg,
-    h('button',{onclick:async()=>{try{await db.doc('config/app').set({enabled:on.checked,message:msg.value.trim()},{merge:true});st.textContent='تم الحفظ'}catch(_){st.textContent='تعذّر الحفظ'}}},'حفظ'),st);
-  db.doc('config/app').get().then(s=>{const c=s.exists?s.data():{enabled:true};on.checked=c.enabled!==false;msg.value=c.message||''});
+  file.addEventListener('change',async()=>{if(!file.files[0])return;try{img=await toData(file.files[0]);pic.style.backgroundImage=safeImg(img)}catch(_){st.textContent='تعذّر قراءة الصورة'}});
+  const title=h('h3',{},'منتج جديد');
+  function reset(){editId=null;img='';name.value=price.value=desc.value=file.value='';avail.checked=true;pic.style.backgroundImage='';title.textContent='منتج جديد';st.textContent=''}
+  const save=h('button',{onclick:async()=>{
+    if(!name.value.trim()){st.textContent='اكتب اسم المنتج';return}
+    const d={name:name.value.trim(),cat:cat.value,price:price.value.trim(),desc:desc.value.trim(),img,available:avail.checked};
+    try{
+      if(editId)await db.doc('products/'+editId).update(d);else await db.collection('products').add({...d,createdAt:TS()});
+      reset();st.textContent='تم الحفظ';
+    }catch(_){st.textContent='تعذّر الحفظ (الصورة كبيرة؟ جرّب صورة أصغر)'}
+  }},'حفظ');
+  const del=h('button',{class:'danger',onclick:async()=>{if(editId&&confirm('حذف المنتج؟')){await db.doc('products/'+editId).delete();reset()}}},'حذف');
+  const list=h('div',{style:'display:flex;flex-direction:column;gap:8px'});
+  body.append(title,name,cat,price,desc,h('label',{},avail,' متوفر'),file,pic,save,del,h('button',{class:'alt',onclick:reset},'مسح النموذج'),st,h('hr'),list);
+  subs.push(db.doc('config/site').onSnapshot(s=>{if(s.exists)cfg={...cfg,...s.data()};const v=cat.value;cat.replaceChildren(...(cfg.cats.length?cfg.cats:['عام']).map(c=>h('option',{value:c},c)));if(v)cat.value=v}));
+  subs.push(db.collection('products').orderBy('createdAt','desc').onSnapshot(s=>{
+    list.replaceChildren(...s.docs.map(d=>{const p=d.data();
+      return h('div',{class:'row',onclick:()=>{editId=d.id;img=p.img||'';name.value=p.name;price.value=p.price||'';desc.value=p.desc||'';avail.checked=p.available!==false;
+        if(p.cat)cat.value=p.cat;pic.style.backgroundImage=safeImg(img);title.textContent='تعديل: '+p.name;scrollTo(0,0)}},
+        h('div',{class:'im',style:'background-image:'+safeImg(p.img)}),h('div',{class:'grow'},h('b',{},p.name),h('div',{class:'muted'},(p.cat||'')+' '+(p.price||''))),p.available===false?h('span',{class:'muted'},'مخفي/غير متوفر'):'')}));
+    if(s.empty)list.append(h('p',{class:'muted'},'لا توجد منتجات بعد.'));
+  }));
+}
+function viewSettings(body){
+  const f=(ph,v,a={})=>h('input',{placeholder:ph,value:v||'',...a});
+  const st=h('p',{class:'muted'});
+  const name=f('اسم الشركة',cfg.name),tag=f('الشعار النصي',cfg.tagline),wa=f('رقم واتساب بالصيغة الدولية بدون + (مثال 963912345678)',cfg.whatsapp,{dir:'ltr',inputmode:'numeric'});
+  const cats=h('textarea',{rows:'3',placeholder:'الأقسام مفصولة بفاصلة: ألواح شمسية، بطاريات، إنفرترات'});
+  db.doc('config/site').get().then(s=>{if(s.exists){cfg={...cfg,...s.data()};name.value=cfg.name||'';tag.value=cfg.tagline||'';wa.value=cfg.whatsapp||'';cats.value=(cfg.cats||[]).join('، ')}});
+  body.append(h('label',{},'اسم الشركة'),name,h('label',{},'الشعار النصي'),tag,h('label',{},'واتساب'),wa,h('label',{},'الأقسام'),cats,
+    h('button',{onclick:async()=>{try{
+      await db.doc('config/site').set({name:name.value.trim(),tagline:tag.value.trim(),whatsapp:wa.value.replace(/\D/g,''),cats:cats.value.split(/[,،]/).map(x=>x.trim()).filter(Boolean)},{merge:true});st.textContent='تم الحفظ'}catch(_){st.textContent='تعذّر الحفظ'}}},'حفظ'),st);
 }
 </script>
 </body>
