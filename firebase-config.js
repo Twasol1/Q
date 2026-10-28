@@ -1,7 +1,7 @@
-// ضع هنا إعدادات مشروعك من: Firebase Console > Project settings > Your apps > Web app
+// الصق هنا إعدادات مشروعك: Firebase Console > Project settings > Your apps > Web app
 const FIREBASE_CONFIG = {
   apiKey: "ضع_apiKey_هنا",
-  authDomain: "syriachat-e10bd.firebaseapp.com",
-  projectId: "syriachat-e10bd",
+  authDomain: "ضع_projectId_هنا.firebaseapp.com",
+  projectId: "ضع_projectId_هنا",
   appId: "ضع_appId_هنا"
 };
