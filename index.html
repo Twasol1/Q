@@ -3,116 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SyriaChat</title>
+<meta name="theme-color" content="#ea580c">
+<meta name="description" content="ألواح شمسية، بطاريات، إنفرترات وحلول طاقة موثوقة. تواصل معنا عبر واتساب.">
+<title>SAFETY — حلول الطاقة الشمسية</title>
 <link rel="stylesheet" href="style.css">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div id="app"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-// ===== أدوات =====
 const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[x,v]of Object.entries(a)){if(x==='class')e.className=v;else if(x.startsWith('on'))e.addEventListener(x.slice(2),v);else e.setAttribute(x,v)}k.flat().forEach(c=>e.append(c));return e};
 const app=document.getElementById('app');
 firebase.initializeApp(FIREBASE_CONFIG);
-const auth=firebase.auth(),db=firebase.firestore(),TS=firebase.firestore.FieldValue.serverTimestamp;
-const AVATARS=['🦅','🌿','🕊️','🌙','⭐','🦁','🌹','🏔️'];
-let me=null,profile=null,cfg={enabled:true,message:''},routeUnsubs=[],lastKey='',profUnsub=null;
+const db=firebase.firestore();
+let cfg={name:'SAFETY',tagline:'حلول طاقة شمسية موثوقة',whatsapp:'',cats:[]},prods=[],q='',cat='',loaded=false;
+const safeImg=u=>/^(data:image\/|https:\/\/)/.test(u||'')?'url("'+u.replace(/["\\\n]/g,'')+'")':'';
+const wa=txt=>cfg.whatsapp?'https://wa.me/'+String(cfg.whatsapp).replace(/\D/g,'')+'?text='+encodeURIComponent(txt):null;
 
-// ===== اشتراكات عامة (تحديث فوري بدون إعادة تحميل) =====
-db.doc('config/app').onSnapshot(s=>{cfg=s.exists?s.data():{enabled:true,message:''};render()},()=>render());
-auth.onAuthStateChanged(u=>{
-  me=u;profile=null;if(profUnsub)profUnsub();
-  if(u){profUnsub=db.doc('users/'+u.uid).onSnapshot(s=>{profile=s.exists?s.data():null;render()})}
-  render();
-});
-window.addEventListener('hashchange',render);
+db.doc('config/site').onSnapshot(s=>{if(s.exists)cfg={...cfg,...s.data()};draw()},()=>draw());
+db.collection('products').orderBy('createdAt','desc').onSnapshot(s=>{prods=s.docs.map(d=>({id:d.id,...d.data()}));loaded=true;draw()},()=>{loaded=true;draw()});
+window.addEventListener('hashchange',()=>{scrollTo(0,0);draw()});
 
-function render(){
-  const key=[cfg.enabled,!!me,!!profile,profile&&profile.banned,location.hash].join('|');
-  if(key===lastKey)return;lastKey=key;
-  routeUnsubs.forEach(u=>u());routeUnsubs=[];app.replaceChildren();
-  if(cfg.enabled===false)return app.append(h('div',{class:'center'},h('h2',{},'التطبيق متوقف مؤقتاً'),h('p',{class:'muted'},cfg.message||'سنعود قريباً.')));
-  if(!me)return viewLogin();
-  if(!profile)return app.append(h('div',{class:'center'},'جارٍ التحميل…'));
-  if(profile.banned)return app.append(h('div',{class:'center'},h('h2',{},'تم إيقاف حسابك'),h('p',{class:'muted'},'تواصل مع الإدارة.'),h('button',{onclick:()=>auth.signOut()},'تسجيل الخروج')));
-  const [,page,id]=location.hash.split('/');
-  if(page==='room'&&id)return viewRoom(id);
-  if(page==='profile')return viewProfile();
-  viewRooms();
+function draw(){
+  document.title=cfg.name+' — '+cfg.tagline;
+  app.replaceChildren();
+  const m=location.hash.match(/^#\/p\/(.+)$/);
+  m?drawProduct(decodeURIComponent(m[1])):drawHome();
 }
+function footer(){const l=wa('مرحباً، أحتاج استشارة');return h('div',{class:'pad muted'},l?h('a',{class:'btn wa',href:l,target:'_blank',rel:'noopener'},'تواصل عبر واتساب'):'',h('span',{},'© '+cfg.name))}
 
-function shell(title,body,tab,back){
-  app.append(h('header',{class:'top'},back?h('a',{href:'#/rooms','aria-label':'رجوع'},'→'):'',title),
-    h('main',{},body));
-  if(tab)app.append(h('nav',{class:'tabs'},
-    h('a',{href:'#/rooms',class:tab==='r'?'on':''},'الغرف'),h('a',{href:'#/profile',class:tab==='p'?'on':''},'حسابي')));
+function drawHome(){
+  const grid=h('div',{class:'grid'}),chips=h('div',{class:'chips'});
+  const l=wa('مرحباً، أريد الاستفسار عن منتجاتكم');
+  const search=h('input',{type:'search',placeholder:'ابحث عن منتج…',value:q,'aria-label':'بحث'});
+  search.addEventListener('input',()=>{q=search.value;fill()});
+  function fill(){
+    chips.replaceChildren(...['',...cfg.cats].map(c=>h('button',{class:c===cat?'on':'',onclick:()=>{cat=c;fill()}},c||'الكل')));
+    const list=prods.filter(p=>(!cat||p.cat===cat)&&(!q||(p.name+' '+p.desc).includes(q)));
+    grid.replaceChildren(...list.map(p=>h('a',{class:'card',href:'#/p/'+encodeURIComponent(p.id)},
+      h('div',{class:'im',style:'background-image:'+safeImg(p.img),role:'img','aria-label':p.name}),
+      h('div',{class:'t'},h('b',{},p.name),h('span',{class:'price'},p.price||''),p.available===false?h('span',{class:'muted'},'غير متوفر'):''))));
+    if(!list.length)grid.replaceChildren(h('p',{class:'muted'},loaded?'لا توجد منتجات مطابقة.':'جارٍ التحميل…'));
+  }
+  app.append(h('header',{class:'hero'},h('h1',{},cfg.name),h('p',{},cfg.tagline),l?h('a',{class:'btn',href:l,target:'_blank',rel:'noopener'},'اطلب عبر واتساب'):''),
+    h('main',{class:'pad'},search,chips,grid),footer());
+  fill();
 }
-
-// ===== الدخول / إنشاء حساب =====
-function viewLogin(){
-  let signup=false;
-  const err=h('p',{class:'err'});
-  const name=h('input',{placeholder:'الاسم الظاهر',autocomplete:'name',style:'display:none'});
-  const email=h('input',{type:'email',placeholder:'البريد الإلكتروني',autocomplete:'email',dir:'ltr'});
-  const pass=h('input',{type:'password',placeholder:'كلمة المرور (6 أحرف على الأقل)',autocomplete:'current-password',dir:'ltr'});
-  const go=h('button',{onclick:async()=>{
-    err.textContent='';
-    try{
-      if(signup){
-        if(!name.value.trim())throw new Error('اكتب الاسم');
-        const c=await auth.createUserWithEmailAndPassword(email.value.trim(),pass.value);
-        await db.doc('users/'+c.user.uid).set({name:name.value.trim().slice(0,30),avatar:AVATARS[0],banned:false,createdAt:TS()});
-      }else await auth.signInWithEmailAndPassword(email.value.trim(),pass.value);
-    }catch(e){err.textContent=e.message&&!e.code?e.message:'تعذّر الدخول. تحقق من البريد وكلمة المرور.'}
-  }},'دخول');
-  const sw=h('button',{class:'alt',onclick:()=>{signup=!signup;name.style.display=signup?'':'none';go.textContent=signup?'إنشاء حساب':'دخول';sw.textContent=signup?'لدي حساب':'حساب جديد'}},'حساب جديد');
-  shell('SyriaChat',[h('h2',{},'أهلاً بك'),name,email,pass,err,go,sw]);
-}
-
-// ===== الغرف =====
-function viewRooms(){
-  const list=h('div',{style:'display:flex;flex-direction:column;gap:10px'},h('p',{class:'muted'},'جارٍ التحميل…'));
-  shell('الغرف',[list],'r');
-  routeUnsubs.push(db.collection('rooms').orderBy('createdAt').onSnapshot(s=>{
-    list.replaceChildren();
-    if(s.empty)list.append(h('p',{class:'muted'},'لا توجد غرف بعد. ستضيفها الإدارة.'));
-    s.forEach(d=>list.append(h('a',{class:'row',href:'#/room/'+d.id},h('span',{class:'grow'},d.data().name))));
-  },()=>list.replaceChildren(h('p',{class:'err'},'تعذّر تحميل الغرف.'))));
-}
-
-// ===== غرفة محادثة =====
-function viewRoom(id){
-  const box=h('div',{class:'msgs'});
-  const input=h('input',{placeholder:'اكتب رسالة…',maxlength:'1000',autocomplete:'off'});
-  const form=h('form',{class:'send',onsubmit:async e=>{
-    e.preventDefault();const t=input.value.trim();if(!t)return;input.value='';
-    try{await db.collection('rooms/'+id+'/messages').add({uid:me.uid,name:profile.name,text:t,ts:TS()})}catch(_){input.value=t}
-  }},input,h('button',{type:'submit'},'إرسال'));
-  app.append(h('header',{class:'top'},h('a',{href:'#/rooms','aria-label':'رجوع'},'→'),'غرفة'),h('main',{},box),form);
-  db.doc('rooms/'+id).get().then(d=>{if(d.exists)app.querySelector('header').lastChild.textContent=d.data().name});
-  routeUnsubs.push(db.collection('rooms/'+id+'/messages').orderBy('ts','desc').limit(100).onSnapshot(s=>{
-    box.replaceChildren();
-    s.docs.reverse().forEach(d=>{const m=d.data();
-      box.append(h('div',{class:'msg'+(m.uid===me.uid?' me':'')},h('b',{},m.name||''),h('span',{},m.text)))});
-    const mn=app.querySelector('main');mn.scrollTop=mn.scrollHeight;
-  }));
-}
-
-// ===== حسابي =====
-function viewProfile(){
-  let av=profile.avatar||AVATARS[0];
-  const name=h('input',{value:profile.name,maxlength:'30'});
-  const msg=h('p',{class:'muted'});
-  const btns=AVATARS.map(a=>h('button',{class:'alt'+(a===av?' on':''),onclick:()=>{av=a;btns.forEach(b=>b.classList.toggle('on',b.textContent===a))}},a));
-  shell('حسابي',[
-    h('label',{},'الاسم الظاهر'),name,h('label',{},'الصورة'),h('div',{class:'avatars'},btns),
-    h('button',{onclick:async()=>{try{await db.doc('users/'+me.uid).update({name:name.value.trim().slice(0,30)||profile.name,avatar:av});msg.textContent='تم الحفظ'}catch(_){msg.textContent='تعذّر الحفظ'}}},'حفظ'),
-    msg,h('button',{class:'danger',onclick:()=>auth.signOut()},'تسجيل الخروج')
-  ],'p');
+function drawProduct(id){
+  const p=prods.find(x=>x.id===id);
+  const l=p&&wa('مرحباً، أريد طلب/الاستفسار عن: '+p.name);
+  app.append(h('header',{class:'top'},h('a',{href:'#/','aria-label':'رجوع'},'→'),p?p.name:'المنتج'),
+    h('main',{class:'pad'},p?[h('div',{class:'big',style:'background-image:'+safeImg(p.img)}),h('h2',{},p.name),h('div',{class:'price'},p.price||''),
+      h('p',{style:'white-space:pre-wrap'},p.desc||''),p.available===false?h('p',{class:'err'},'غير متوفر حالياً'):'',
+      l?h('a',{class:'btn wa',href:l,target:'_blank',rel:'noopener'},'اطلب عبر واتساب'):''
+    ]:h('p',{class:'muted'},loaded?'المنتج غير موجود.':'جارٍ التحميل…')),footer());
 }
 </script>
 </body>
