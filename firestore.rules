@@ -1,39 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function signed() { return request.auth != null; }
-    function isAdmin() { return signed() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
-    function notBanned() {
-      return signed() && !(get(/databases/$(db)/documents/users/$(request.auth.uid)).data.banned == true);
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(db)/documents/admins/$(request.auth.uid));
     }
-
-    // إعدادات التطبيق: قراءة للجميع، كتابة للمشرف فقط
-    match /config/{d} { allow read: if true; allow write: if isAdmin(); }
-
-    // قائمة المشرفين: يقرأ المستخدم وثيقته فقط، ولا أحد يكتب من التطبيق
-    match /admins/{uid} { allow read: if signed() && request.auth.uid == uid; allow write: if false; }
-
-    match /users/{uid} {
-      allow read: if signed();
-      allow create: if signed() && request.auth.uid == uid && request.resource.data.banned == false;
-      // المستخدم لا يستطيع تغيير حالة الحظر عن نفسه
-      allow update: if (signed() && request.auth.uid == uid && request.resource.data.banned == resource.data.banned) || isAdmin();
+    function okProduct() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.desc is string && d.desc.size() <= 2000
+        && d.price is string && d.price.size() <= 40
+        && d.cat is string && d.cat.size() <= 40
+        && d.img is string && d.img.size() <= 300000;
+    }
+    // المنتجات والإعدادات: قراءة للجميع، كتابة للمشرف فقط
+    match /products/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin() && okProduct();
       allow delete: if isAdmin();
     }
-
-    match /rooms/{r} {
-      allow read: if notBanned();
-      allow write: if isAdmin();
-      match /messages/{m} {
-        allow read: if notBanned();
-        allow create: if notBanned()
-          && request.resource.data.keys().hasOnly(['uid','name','text','ts'])
-          && request.resource.data.uid == request.auth.uid
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
-        allow delete: if isAdmin();
-        allow update: if false;
-      }
-    }
+    match /config/{d} { allow read: if true; allow write: if isAdmin(); }
+    // قائمة المشرفين: لا قراءة إلا لصاحب الوثيقة، ولا كتابة من التطبيق
+    match /admins/{uid} { allow read: if request.auth != null && request.auth.uid == uid; allow write: if false; }
   }
 }
