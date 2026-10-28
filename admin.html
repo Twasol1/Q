@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة الإدارة</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="app"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[x,v]of Object.entries(a)){if(x==='class')e.className=v;else if(x.startsWith('on'))e.addEventListener(x.slice(2),v);else e.setAttribute(x,v)}k.flat().forEach(c=>e.append(c));return e};
+const app=document.getElementById('app');
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth=firebase.auth(),db=firebase.firestore(),TS=firebase.firestore.FieldValue.serverTimestamp;
+let admin=false,checked=false,subs=[],lastKey='',loginErr='';
+
+auth.onAuthStateChanged(async u=>{
+  admin=false;checked=false;render();
+  if(u){
+    try{admin=(await db.doc('admins/'+u.uid).get()).exists}catch(_){admin=false}
+    if(!admin){loginErr='هذا الحساب ليس مشرفاً.';await auth.signOut();return}
+  }
+  checked=true;render();
+});
+window.addEventListener('hashchange',render);
+
+function render(){
+  const key=[checked,admin,location.hash,loginErr].join('|');
+  if(key===lastKey)return;lastKey=key;
+  subs.forEach(u=>u());subs=[];app.replaceChildren();
+  if(!checked&&auth.currentUser)return app.append(h('div',{class:'center'},'جارٍ التحقق…'));
+  if(!admin)return viewLogin();
+  const p=location.hash.split('/')[1]||'users';
+  const tabs=[['users','المستخدمون'],['rooms','الغرف'],['app','التطبيق']];
+  const body=h('main',{});
+  app.append(h('header',{class:'top'},h('span',{style:'flex:1'},'لوحة الإدارة'),h('button',{class:'alt',onclick:()=>auth.signOut()},'خروج')),body,
+    h('nav',{class:'tabs'},tabs.map(([k,t])=>h('a',{href:'#/'+k,class:k===p?'on':''},t))));
+  ({users:viewUsers,rooms:viewRooms,app:viewApp}[p]||viewUsers)(body);
+}
+
+function viewLogin(){
+  const err=h('p',{class:'err'},loginErr);loginErr='';
+  const email=h('input',{type:'email',placeholder:'البريد الإلكتروني',dir:'ltr',autocomplete:'email'});
+  const pass=h('input',{type:'password',placeholder:'كلمة المرور',dir:'ltr',autocomplete:'current-password'});
+  app.append(h('div',{class:'center',style:'width:100%'},h('h2',{},'لوحة الإدارة'),email,pass,err,
+    h('button',{onclick:async()=>{err.textContent='';try{await auth.signInWithEmailAndPassword(email.value.trim(),pass.value)}catch(_){err.textContent='بيانات الدخول غير صحيحة.'}}},'دخول')));
+}
+
+function viewUsers(body){
+  const list=h('div',{style:'display:flex;flex-direction:column;gap:10px'});body.append(list);
+  subs.push(db.collection('users').orderBy('createdAt','desc').limit(200).onSnapshot(s=>{
+    list.replaceChildren();
+    s.forEach(d=>{const u=d.data();
+      list.append(h('div',{class:'row'},h('span',{},u.avatar||'👤'),
+        h('span',{class:'grow'},u.name||'—',h('div',{class:'muted',dir:'ltr'},d.id)),
+        h('button',{class:u.banned?'alt':'danger',onclick:()=>db.doc('users/'+d.id).update({banned:!u.banned})},u.banned?'رفع الحظر':'حظر')))});
+    if(s.empty)list.append(h('p',{class:'muted'},'لا يوجد مستخدمون بعد.'));
+  }));
+}
+
+function viewRooms(body){
+  const name=h('input',{placeholder:'اسم غرفة جديدة',maxlength:'40'});
+  const list=h('div',{style:'display:flex;flex-direction:column;gap:10px'});
+  body.append(name,h('button',{onclick:async()=>{const n=name.value.trim();if(!n)return;await db.collection('rooms').add({name:n,createdAt:TS()});name.value=''}},'إضافة غرفة'),list);
+  subs.push(db.collection('rooms').orderBy('createdAt').onSnapshot(s=>{
+    list.replaceChildren();
+    s.forEach(d=>list.append(h('div',{class:'row'},h('span',{class:'grow'},d.data().name),
+      h('button',{class:'danger',onclick:()=>{if(confirm('حذف الغرفة؟'))db.doc('rooms/'+d.id).delete()}},'حذف'))));
+  }));
+}
+
+function viewApp(body){
+  const msg=h('textarea',{rows:'3',placeholder:'رسالة تظهر للمستخدمين عند إيقاف التطبيق'});
+  const on=h('input',{type:'checkbox',style:'width:auto'});
+  const st=h('p',{class:'muted'});
+  body.append(h('label',{class:'row'},on,h('span',{class:'grow'},'التطبيق يعمل (ألغِ التحديد لإيقافه للجميع فوراً)')),msg,
+    h('button',{onclick:async()=>{try{await db.doc('config/app').set({enabled:on.checked,message:msg.value.trim()},{merge:true});st.textContent='تم الحفظ'}catch(_){st.textContent='تعذّر الحفظ'}}},'حفظ'),st);
+  db.doc('config/app').get().then(s=>{const c=s.exists?s.data():{enabled:true};on.checked=c.enabled!==false;msg.value=c.message||''});
+}
+</script>
+</body>
+</html>

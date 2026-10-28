@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SyriaChat</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="app"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+// ===== أدوات =====
+const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[x,v]of Object.entries(a)){if(x==='class')e.className=v;else if(x.startsWith('on'))e.addEventListener(x.slice(2),v);else e.setAttribute(x,v)}k.flat().forEach(c=>e.append(c));return e};
+const app=document.getElementById('app');
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth=firebase.auth(),db=firebase.firestore(),TS=firebase.firestore.FieldValue.serverTimestamp;
+const AVATARS=['🦅','🌿','🕊️','🌙','⭐','🦁','🌹','🏔️'];
+let me=null,profile=null,cfg={enabled:true,message:''},routeUnsubs=[],lastKey='',profUnsub=null;
+
+// ===== اشتراكات عامة (تحديث فوري بدون إعادة تحميل) =====
+db.doc('config/app').onSnapshot(s=>{cfg=s.exists?s.data():{enabled:true,message:''};render()},()=>render());
+auth.onAuthStateChanged(u=>{
+  me=u;profile=null;if(profUnsub)profUnsub();
+  if(u){profUnsub=db.doc('users/'+u.uid).onSnapshot(s=>{profile=s.exists?s.data():null;render()})}
+  render();
+});
+window.addEventListener('hashchange',render);
+
+function render(){
+  const key=[cfg.enabled,!!me,!!profile,profile&&profile.banned,location.hash].join('|');
+  if(key===lastKey)return;lastKey=key;
+  routeUnsubs.forEach(u=>u());routeUnsubs=[];app.replaceChildren();
+  if(cfg.enabled===false)return app.append(h('div',{class:'center'},h('h2',{},'التطبيق متوقف مؤقتاً'),h('p',{class:'muted'},cfg.message||'سنعود قريباً.')));
+  if(!me)return viewLogin();
+  if(!profile)return app.append(h('div',{class:'center'},'جارٍ التحميل…'));
+  if(profile.banned)return app.append(h('div',{class:'center'},h('h2',{},'تم إيقاف حسابك'),h('p',{class:'muted'},'تواصل مع الإدارة.'),h('button',{onclick:()=>auth.signOut()},'تسجيل الخروج')));
+  const [,page,id]=location.hash.split('/');
+  if(page==='room'&&id)return viewRoom(id);
+  if(page==='profile')return viewProfile();
+  viewRooms();
+}
+
+function shell(title,body,tab,back){
+  app.append(h('header',{class:'top'},back?h('a',{href:'#/rooms','aria-label':'رجوع'},'→'):'',title),
+    h('main',{},body));
+  if(tab)app.append(h('nav',{class:'tabs'},
+    h('a',{href:'#/rooms',class:tab==='r'?'on':''},'الغرف'),h('a',{href:'#/profile',class:tab==='p'?'on':''},'حسابي')));
+}
+
+// ===== الدخول / إنشاء حساب =====
+function viewLogin(){
+  let signup=false;
+  const err=h('p',{class:'err'});
+  const name=h('input',{placeholder:'الاسم الظاهر',autocomplete:'name',style:'display:none'});
+  const email=h('input',{type:'email',placeholder:'البريد الإلكتروني',autocomplete:'email',dir:'ltr'});
+  const pass=h('input',{type:'password',placeholder:'كلمة المرور (6 أحرف على الأقل)',autocomplete:'current-password',dir:'ltr'});
+  const go=h('button',{onclick:async()=>{
+    err.textContent='';
+    try{
+      if(signup){
+        if(!name.value.trim())throw new Error('اكتب الاسم');
+        const c=await auth.createUserWithEmailAndPassword(email.value.trim(),pass.value);
+        await db.doc('users/'+c.user.uid).set({name:name.value.trim().slice(0,30),avatar:AVATARS[0],banned:false,createdAt:TS()});
+      }else await auth.signInWithEmailAndPassword(email.value.trim(),pass.value);
+    }catch(e){err.textContent=e.message&&!e.code?e.message:'تعذّر الدخول. تحقق من البريد وكلمة المرور.'}
+  }},'دخول');
+  const sw=h('button',{class:'alt',onclick:()=>{signup=!signup;name.style.display=signup?'':'none';go.textContent=signup?'إنشاء حساب':'دخول';sw.textContent=signup?'لدي حساب':'حساب جديد'}},'حساب جديد');
+  shell('SyriaChat',[h('h2',{},'أهلاً بك'),name,email,pass,err,go,sw]);
+}
+
+// ===== الغرف =====
+function viewRooms(){
+  const list=h('div',{style:'display:flex;flex-direction:column;gap:10px'},h('p',{class:'muted'},'جارٍ التحميل…'));
+  shell('الغرف',[list],'r');
+  routeUnsubs.push(db.collection('rooms').orderBy('createdAt').onSnapshot(s=>{
+    list.replaceChildren();
+    if(s.empty)list.append(h('p',{class:'muted'},'لا توجد غرف بعد. ستضيفها الإدارة.'));
+    s.forEach(d=>list.append(h('a',{class:'row',href:'#/room/'+d.id},h('span',{class:'grow'},d.data().name))));
+  },()=>list.replaceChildren(h('p',{class:'err'},'تعذّر تحميل الغرف.'))));
+}
+
+// ===== غرفة محادثة =====
+function viewRoom(id){
+  const box=h('div',{class:'msgs'});
+  const input=h('input',{placeholder:'اكتب رسالة…',maxlength:'1000',autocomplete:'off'});
+  const form=h('form',{class:'send',onsubmit:async e=>{
+    e.preventDefault();const t=input.value.trim();if(!t)return;input.value='';
+    try{await db.collection('rooms/'+id+'/messages').add({uid:me.uid,name:profile.name,text:t,ts:TS()})}catch(_){input.value=t}
+  }},input,h('button',{type:'submit'},'إرسال'));
+  app.append(h('header',{class:'top'},h('a',{href:'#/rooms','aria-label':'رجوع'},'→'),'غرفة'),h('main',{},box),form);
+  db.doc('rooms/'+id).get().then(d=>{if(d.exists)app.querySelector('header').lastChild.textContent=d.data().name});
+  routeUnsubs.push(db.collection('rooms/'+id+'/messages').orderBy('ts','desc').limit(100).onSnapshot(s=>{
+    box.replaceChildren();
+    s.docs.reverse().forEach(d=>{const m=d.data();
+      box.append(h('div',{class:'msg'+(m.uid===me.uid?' me':'')},h('b',{},m.name||''),h('span',{},m.text)))});
+    const mn=app.querySelector('main');mn.scrollTop=mn.scrollHeight;
+  }));
+}
+
+// ===== حسابي =====
+function viewProfile(){
+  let av=profile.avatar||AVATARS[0];
+  const name=h('input',{value:profile.name,maxlength:'30'});
+  const msg=h('p',{class:'muted'});
+  const btns=AVATARS.map(a=>h('button',{class:'alt'+(a===av?' on':''),onclick:()=>{av=a;btns.forEach(b=>b.classList.toggle('on',b.textContent===a))}},a));
+  shell('حسابي',[
+    h('label',{},'الاسم الظاهر'),name,h('label',{},'الصورة'),h('div',{class:'avatars'},btns),
+    h('button',{onclick:async()=>{try{await db.doc('users/'+me.uid).update({name:name.value.trim().slice(0,30)||profile.name,avatar:av});msg.textContent='تم الحفظ'}catch(_){msg.textContent='تعذّر الحفظ'}}},'حفظ'),
+    msg,h('button',{class:'danger',onclick:()=>auth.signOut()},'تسجيل الخروج')
+  ],'p');
+}
+</script>
+</body>
+</html>
