@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مراقب الشبكة المحلية | Network Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="flex justify-between items-center bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
+            <div>
+                <h1 class="text-2xl font-bold text-emerald-400">📡 لوحة مراقبة أجهزة الشبكة</h1>
+                <p class="text-slate-400 text-sm mt-1">متابعة الأجهزة المتصلة وحجم التحميل لحظياً</p>
+            </div>
+            <span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-500/20 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> مفعّل ومتصل
+            </span>
+        </header>
+
+        <!-- Chart Section -->
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
+            <h2 class="text-lg font-semibold text-slate-200 mb-4">📊 إجمالي استهلاك البيانات (ميغابايت)</h2>
+            <div class="h-64">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Devices Table -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden">
+            <div class="p-5 border-b border-slate-700">
+                <h2 class="text-lg font-semibold text-slate-200">📱 الأجهزة المتصلة على الشبكة</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/50 text-slate-400 text-sm">
+                            <th class="p-4">عنوان IP</th>
+                            <th class="p-4">الحالة</th>
+                            <th class="p-4">السرعة الحالية</th>
+                            <th class="p-4">إجمالي التحميل (Download)</th>
+                            <th class="p-4">إجمالي الرفع (Upload)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devicesTable" class="divide-y divide-slate-700 text-sm">
+                        <!-- يتم إدراج الصفوف تلقائياً عبر JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+
+        // إعداد الرسم البياني
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'إجمالي التحميل (MB)',
+                    data: [],
+                    backgroundColor: '#10b981',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // الاستماع للتحديثات اللحظية
+        socket.on('network-update', (devices) => {
+            const tableBody = document.getElementById('devicesTable');
+            tableBody.innerHTML = '';
+
+            const labels = [];
+            const dataValues = [];
+
+            devices.forEach(dev => {
+                labels.push(dev.ip);
+                dataValues.push(dev.downloadMB);
+
+                const row = `
+                    <tr class="hover:bg-slate-700/40 transition">
+                        <td class="p-4 font-mono font-medium">${dev.ip}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded text-xs ${dev.status === 'Online' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                                ${dev.status}
+                            </span>
+                        </td>
+                        <td class="p-4 font-mono">${dev.currentSpeedKbps} KB/s</td>
+                        <td class="p-4 font-mono text-emerald-400">${dev.downloadMB} MB</td>
+                        <td class="p-4 font-mono text-cyan-400">${dev.uploadMB} MB</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+
+            // تحديث الرسم البياني
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = dataValues;
+            chart.update();
+        });
+    </script>
+</body>
+</html>
