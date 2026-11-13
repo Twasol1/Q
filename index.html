@@ -6,8 +6,6 @@
     <title>حجز موعد - عيادة الأمراض الداخلية</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- مكتبة التقاط صورة المستند -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -46,14 +44,13 @@
             100% { background: #d1fae5; }
         }
 
-        @keyframes flashRed {
-            0% { background: #fee2e2; }
-            50% { background: #fca5a5; }
-            100% { background: #fee2e2; }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(2, 132, 199, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0); }
         }
 
         .flash-success { animation: flashGreen 0.8s ease-in-out infinite; }
-        .flash-rejected { animation: flashRed 0.8s ease-in-out infinite; }
 
         .container {
             width: 100%;
@@ -65,8 +62,8 @@
             background: var(--card-bg);
             width: 100%;
             padding: 35px 30px;
-            border-radius: 20px;
-            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.05);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.08);
             border: 1px solid #e2e8f0;
         }
 
@@ -76,23 +73,23 @@
         }
 
         .form-header .icon-box {
-            width: 70px;
-            height: 70px;
-            background: #e0f2fe;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
             color: var(--primary);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 34px;
             margin: 0 auto 15px;
-            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.1);
+            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.15);
         }
 
         .form-header h2 {
-            font-weight: 700;
+            font-weight: 800;
             color: #0f172a;
-            font-size: 22px;
+            font-size: 24px;
         }
 
         .clinic-location-badge {
@@ -100,8 +97,8 @@
             border: 1.5px solid #bae6fd;
             color: #0369a1;
             padding: 10px 18px;
-            border-radius: 12px;
-            font-size: 14px;
+            border-radius: 14px;
+            font-size: 13.5px;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
@@ -112,18 +109,18 @@
 
         .form-header p {
             color: #64748b;
-            font-size: 13px;
+            font-size: 13.5px;
             margin-top: 5px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 16px; }
 
         label {
             display: block;
             margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 13px;
+            font-weight: 700;
+            font-size: 13.5px;
             color: #334155;
         }
 
@@ -142,9 +139,9 @@
 
         input, select, textarea {
             width: 100%;
-            padding: 12px 16px 12px 45px;
+            padding: 13px 16px 13px 45px;
             border: 1.5px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 14px;
             outline: none;
             background: #fff;
@@ -157,11 +154,11 @@
             box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.12);
         }
 
-        input[type="file"] { padding: 10px 45px 10px 10px; cursor: pointer; }
+        input[type="file"] { padding: 11px 45px 11px 12px; cursor: pointer; }
 
         .report-help {
             margin-top: 7px;
-            font-size: 11.5px;
+            font-size: 12px;
             color: #64748b;
             line-height: 1.6;
         }
@@ -174,41 +171,44 @@
             border: 1px solid #bae6fd;
             border-radius: 10px;
             color: #0369a1;
-            font-size: 12px;
+            font-size: 12.5px;
         }
 
         .section-title {
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 700;
             color: var(--primary);
-            margin: 15px 0 10px 0;
+            margin: 20px 0 12px 0;
             display: flex;
             align-items: center;
             gap: 8px;
             border-bottom: 1px dashed #cbd5e1;
-            padding-bottom: 5px;
+            padding-bottom: 6px;
         }
 
+        /* زر الإرسال مع وميض خافت جذاب */
         .btn-submit {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 14px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 14px;
             cursor: pointer;
-            font-weight: 700;
+            font-weight: 800;
             width: 100%;
             font-size: 16px;
             transition: background 0.3s, transform 0.1s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin-top: 20px;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+            gap: 10px;
+            margin-top: 25px;
+            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.3);
+            animation: pulseGlow 2.5s infinite;
         }
 
         .btn-submit:hover { background: var(--primary-hover); }
+        .btn-submit:active { transform: scale(0.98); }
 
         #statusMsg {
             margin-top: 20px;
@@ -216,7 +216,7 @@
             font-weight: 600;
             font-size: 14px;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             display: none;
             line-height: 1.6;
         }
@@ -228,12 +228,12 @@
 
         .patient-document {
             background: #ffffff;
-            border: 2px dashed #0284c7;
-            border-radius: 16px;
-            padding: 20px;
+            border: 2px dashed var(--primary);
+            border-radius: 18px;
+            padding: 22px;
             margin-top: 15px;
             text-align: right;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
         }
 
         .patient-document.emergency-doc { border-color: #ef4444; background: #fff5f5; }
@@ -247,38 +247,70 @@
             margin-bottom: 15px;
         }
 
-        .doc-header h3 { font-size: 16px; color: #0f172a; display: flex; align-items: center; gap: 6px; }
-        .doc-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .doc-header h3 { font-size: 16.5px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+        .doc-badge { background: #e0f2fe; color: #0369a1; padding: 5px 12px; border-radius: 8px; font-size: 12.5px; font-weight: bold; }
         .patient-document.emergency-doc .doc-badge { background: #fee2e2; color: #991b1b; }
 
-        .doc-body { font-size: 14px; color: #334155; line-height: 1.8; }
+        .doc-body { font-size: 14px; color: #334155; line-height: 1.9; }
         .doc-body p { margin-bottom: 6px; display: flex; justify-content: space-between; border-bottom: 1px solid #f8fafc; padding-bottom: 4px; }
         .doc-body span { font-weight: bold; color: #0f172a; }
 
         .doc-notes-box {
             background: #fffbeb;
             border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 10px 12px;
+            border-radius: 10px;
+            padding: 12px;
             margin-top: 12px;
             text-align: right;
         }
-        .doc-notes-box .notes-title { font-size: 12.5px; font-weight: 700; color: #b45309; margin-bottom: 4px; }
-        .doc-notes-box .notes-content { font-size: 13.5px; color: #78350f; font-weight: 600; word-break: break-all; }
+        .doc-notes-box .notes-title { font-size: 13px; font-weight: 700; color: #b45309; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        .doc-notes-box .notes-content { font-size: 14px; color: #78350f; font-weight: 600; word-break: break-all; }
 
-        .doc-actions { margin-top: 15px; display: flex; gap: 10px; }
-        .btn-doc { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-family: 'Cairo'; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
-        .btn-download { background: #0284c7; color: white; }
-        .btn-new { background: #065f46; color: white; }
+        .doc-actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-doc { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-family: 'Cairo'; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13.5px; }
+        .btn-download { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2); }
+        .btn-new { background: var(--success); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
 
-        .doctor-signature { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
-        .doctor-signature .patient-quote { font-size: 12px; color: #64748b; font-style: italic; margin-bottom: 8px; }
-        .doctor-signature .doc-name { font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        /* قسم معلومات الاتصال والعيادة الواضحة مع أيقونات */
+        .clinic-contact-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .clinic-contact-info h4 {
+            font-size: 15px;
+            color: #0f172a;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .contact-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .contact-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .contact-item i { color: var(--primary); font-size: 15px; }
 
         .whatsapp-float {
             position: fixed; bottom: 25px; left: 25px; background-color: #25d366; color: #fff;
             width: 60px; height: 60px; border-radius: 50%; text-align: center; font-size: 32px;
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4); z-index: 1000; display: flex;
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4); z-index: 1000; display: flex;
             align-items: center; justify-content: center; text-decoration: none; transition: 0.3s;
         }
         .whatsapp-float:hover { background-color: #20ba5a; transform: scale(1.1); }
@@ -287,15 +319,15 @@
 <body>
 
 <div class="container">
-    <!-- نافذة إيقاف الموقع التي تظهر تلقائياً عندما يوقف الأدمن الموقع -->
+    <!-- نافذة إيقاف الموقع تظهر تلقائياً عندما يغلقها الأدمن -->
     <div id="siteClosedMessage" style="display:none; text-align:center; padding:40px 10px; font-family:'Cairo'; width:100%;">
-        <div style="background:#ffffff; padding:35px 25px; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
-            <i class="fa-solid fa-clock-rotate-left" style="font-size:55px; color:#0284c7; margin-bottom:15px;"></i>
-            <h2 style="color:#0f172a; margin-bottom:10px; font-size:20px;">نستقبل طلبات الحجز في الأوقات الرسمية</h2>
-            <p style="color:#64748b; font-size:14px; line-height:1.6; margin-bottom:20px;">
+        <div style="background:#ffffff; padding:40px 25px; border-radius:24px; box-shadow:0 15px 30px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size:60px; color:#0284c7; margin-bottom:15px;"></i>
+            <h2 style="color:#0f172a; margin-bottom:12px; font-size:22px;">نستقبل طلبات الحجز في الأوقات الرسمية</h2>
+            <p style="color:#64748b; font-size:14.5px; line-height:1.7; margin-bottom:20px;">
                 نعتذر عن استقبال طلبات جديدة في الوقت الحالي، ترحب بكم عيادة الدكتور محمد إسماعيل دائماً خلال أوقات الدوام الرسمي التالية:
             </p>
-            <div style="background:#f0f9ff; color:#0369a1; padding:15px; border-radius:12px; font-weight:bold; font-size:15px; border:1px dashed #bae6fd; line-height: 1.8;">
+            <div style="background:#f0f9ff; color:#0369a1; padding:18px; border-radius:14px; font-weight:bold; font-size:16px; border:1px dashed #bae6fd; line-height: 1.8;">
                 ساعات الحجز من الساعة 9 صباحاً حتى الـ 3 عصراً<br>ومن الساعة 5 حتى 11 ليلاً
             </div>
         </div>
@@ -379,6 +411,7 @@
                 </div>
             </div>
 
+            <!-- زر إرسال مع وميض خافت -->
             <button type="button" id="submitBtn" class="btn-submit" onclick="sendOrder()">
                 <span id="btnText">إرسال طلب الحجز للطبيب</span>
                 <i class="fa-solid fa-paper-plane"></i>
@@ -387,7 +420,22 @@
 
         <div id="statusMsg"></div>
 
-        <div class="doctor-signature">
+        <!-- قسم معلومات الاتصال الواضحة والأيقونات -->
+        <div class="clinic-contact-info">
+            <h4><i class="fa-solid fa-address-book" style="color:var(--primary); margin-left:5px;"></i> معلومات الاتصال والعيادة</h4>
+            <div class="contact-items-grid">
+                <div class="contact-item">
+                    <i class="fa-solid fa-phone-volume"></i>
+                    <span dir="ltr">+963 937 050 272</span>
+                </div>
+                <div class="contact-item">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>9ص - 3ع | 5ل - 11ل</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="doctor-signature" style="margin-top:20px;">
             <p class="patient-quote">"صحتك أمانة، نعتني بك بعناية واهتمام دائم"</p>
             <div class="doc-name">
                 <i class="fa-solid fa-stethoscope"></i>
@@ -420,7 +468,6 @@
     let unsubscribeLive = null;
     let base64ReportImage = "";
 
-    // التحقق المباشر من حالة الموقع المربوطة بالأدمن
     async function checkSiteOpenStatus() {
         try {
             const snap = await getDoc(doc(db, "settings", "siteControl"));
@@ -606,7 +653,7 @@
                         </div>
                     `;
                 } else if (currentStatus.includes("مرفوض") || currentStatus.includes("ملغي")) {
-                    statusMsg.className = "rejected-msg flash-rejected";
+                    statusMsg.className = "rejected-msg";
                     statusMsg.innerHTML = `
                         <i class="fa-solid fa-circle-xmark" style="font-size:24px;margin-bottom:8px;display:block;"></i>
                         نعتذر منك، تم <b>رفض</b> طلب الحجز الحالي من قِبل الطبيب.
