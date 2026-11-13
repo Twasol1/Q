@@ -1,29 +1,34 @@
-# خطوات التركيب (من الهاتف فقط)
+# محفظة تجريبية (Flutter + خادم)
 
-الملفات: index.html (الصفحة العامة) • admin.html (لوحة الإدارة) • style.css • firebase-config.js • firestore.rules
+## 1) تشغيل الخادم
+```
+cd backend
+npm init -y
+npm install express
+ADMIN_PASSWORD=ضع_كلمة_مرورك node server.js
+```
 
-## 1) إعداد Firebase
-1. Firebase Console > مشروع syriachat-e10bd > Authentication > Sign-in method > فعّل Email/Password.
-2. Authentication > Settings > Authorized domains > أضف: syriachat-5.github.io
-3. Firestore Database > Rules > احذف القديم والصق محتوى firestore.rules > Publish.
-4. Project settings > Your apps > Web app > انسخ apiKey و appId وضعهما في firebase-config.js.
+## 2) تجهيز مشروع Flutter
+الملفات في `lib/` فقط. أنشئ المشروع أولاً ثم انسخ المجلد `lib` و`pubspec.yaml` فوق الموجود:
+```
+flutter create --project-name wallet_demo .
+flutter pub get
+```
+يتطلب Dart 3.3 أو أحدث.
 
-## 2) الرفع على GitHub
-ارفع الملفات الخمسة إلى المستودع نفسه (Add file > Upload files) ثم Commit.
-الرابط العام: https://syriachat-5.github.io/Syriachat/
-لوحة الإدارة: https://syriachat-5.github.io/Syriachat/admin.html
+## 3) تشغيل تطبيق المستخدم (موبايل)
+```
+flutter run -t lib/main_user.dart --dart-define=API_URL=http://10.0.2.2:3000
+```
+`10.0.2.2` للمحاكي Android. على هاتف حقيقي استخدم عنوان IP لجهازك على نفس الشبكة.
 
-## 3) أول مشرف
-1. افتح الصفحة العامة وأنشئ حسابك.
-2. Firebase > Authentication > Users > انسخ UID حسابك.
-3. Firestore > Start collection باسم admins > Document ID = الـ UID المنسوخ > أضف حقل ok (boolean) = true.
-4. افتح admin.html وادخل بنفس البريد. أنشئ غرفة من تبويب "الغرف".
+## 4) تشغيل لوحة التحكم (منفصلة، على المتصفح)
+```
+flutter run -d chrome -t lib/main_admin.dart --dart-define=API_URL=http://localhost:3000
+```
+للنشر: `flutter build web -t lib/main_admin.dart` ثم ارفع مجلد `build/web` على أي استضافة.
 
-## الحماية
-- مفتاح apiKey ظاهر للعامة بطبيعته؛ الحماية الحقيقية في firestore.rules وليس في إخفاء الصفحة.
-- المشرف يُحدَّد فقط بوجود وثيقته في admins، ولا يمكن لأي مستخدم إضافتها من التطبيق.
-- المحظور لا يقرأ ولا يكتب. المستخدم لا يستطيع رفع الحظر عن نفسه.
-- إيقاف التطبيق من لوحة الإدارة يظهر للجميع فوراً بلا تحديث.
-
-## غير مشمول
-الإشعارات والمكالمات والـ APK لم تُبنَ في هذه النسخة.
+## ملاحظات
+- كل البيانات وهمية، ولا توجد أي عملية مالية حقيقية.
+- كلمة المرور الحقيقية موجودة على الخادم فقط، وليست داخل تطبيق الموبايل أو المتصفح.
+- تغيير الاسم والميزات والإشعار من اللوحة يظهر للمستخدم خلال 5 ثوانٍ تقريباً.
