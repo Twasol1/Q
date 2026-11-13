@@ -1,62 +1,125 @@
+// خادم تجريبي. البيانات في الذاكرة وتُعاد عند إعادة تشغيل الخادم.
+// للإنتاج: قاعدة بيانات حقيقية، تشفير كلمات المرور، HTTPS، وحدود للطلبات.
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const ping = require('ping');
-const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+app.use(express.json());
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
-// نطاق الشبكة المحلية للتتبع (عدّلها حسب شبكتك مثل 192.168.1)
-const NETWORK_PREFIX = '192.168.1'; 
-const START_IP = 1;
-const END_IP = 15; // يمكنك زيادة النطاق حسب عدد أجهزتك
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me';
+const sessions = new Set();
 
-// تخزين بيانات الأجهزة في الذاكرة
-let devicesData = {};
+let state = {
+  config: { brand: 'محفظتي' },
+  user: { name: 'مستخدم تجريبي', balance: 500000, number: 'DEMO-0001' },
+  features: { send: true, deposit: true, receive: true },
+  notice: '',
+  txs: [{ id: 1, label: 'شحن تجريبي', amount: 500000, date: '2026-11-10' }],
+};
 
-async function scanNetwork() {
-    let promises = [];
-    for (let i = START_IP; i <= END_IP; i++) {
-        let ip = `${NETWORK_PREFIX}.${i}`;
-        promises.push(
-            ping.sys.probe(ip, { timeout: 1 }).then(isAlive => {
-                if (isAlive) {
-                    if (!devicesData[ip]) {
-                        devicesData[ip] = {
-                            ip: ip,
-                            status: 'Online',
-                            downloadMB: (Math.random() * 5).toFixed(2), // محاكاة/سحب استهلاك ابتدائي
-                            uploadMB: (Math.random() * 2).toFixed(2),
-                            currentSpeedKbps: 0
-                        };
-                    } else {
-                        // تحديث تراكمي لحجم التحميل أثناء النشاط
-                        let addedDownload = (Math.random() * 0.5).toFixed(2);
-                        devicesData[ip].downloadMB = (parseFloat(devicesData[ip].downloadMB) + parseFloat(addedDownload)).toFixed(2);
-                        devicesData[ip].currentSpeedKbps = Math.floor(addedDownload * 1024);
-                        devicesData[ip].status = 'Online';
-                    }
-                } else {
-                    if (devicesData[ip]) {
-                        devicesData[ip].status = 'Offline';
-                        devicesData[ip].currentSpeedKbps = 0;
-                    }
-                }
-            })
-        );
-    }
-    await Promise.all(promises);
-    io.emit('network-update', Object.values(devicesData));
+function addTx(label, amount) {
+  state.txs.unshift({
+    id: Date.now(),
+    label,
+    amount,
+    date: new Date().toISOString().slice(0, 10),
+  });
+  state.txs = state.txs.slice(0, 30);
 }
 
-// تشغيل المسح كل 3 ثوانٍ
-setInterval(scanNetwork, 3000);
+function requireAdmin(req, res, next) {
+  const token = (req.get('Authorization') || '').replace('Bearer ', '');
+  if (!sessions.has(token)) return res.status(401).json({ error: 'غير مصرّح' });
+  next();
+}
+
+function passwordOk(input) {
+  const a = Buffer.from(String(input));
+  const b = Buffer.from(ADMIN_PASSWORD);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+const isInt = (n) => Number.isInteger(n);
+
+// ---- عام ----
+app.get('/api/state', (_req, res) => res.json(state));
+
+// ---- لوحة التحكم ----
+app.post('/api/admin/login', (req, res) => {
+  if (!passwordOk(req.body?.password ?? '')) {
+    return res.status(401).json({ error: 'كلمة المرور غير صحيحة' });
+  }
+  const token = crypto.randomUUID();
+  sessions.add(token);
+  res.json({ token });
+});
+
+app.patch('/api/admin/state', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  if (typeof b.brand === 'string') state.config.brand = b.brand.slice(0, 40);
+  if (typeof b.userName === 'string') state.user.name = b.userName.slice(0, 60);
+  if (typeof b.notice === 'string') state.notice = b.notice.slice(0, 200);
+  if (b.features && typeof b.features === 'object') {
+    for (const k of ['send', 'deposit', 'receive']) {
+      if (typeof b.features[k] === 'boolean') state.features[k] = b.features[k];
+    }
+  }
+  res.json(state);
+});
+
+app.post('/api/admin/adjust', requireAdmin, (req, res) => {
+  const amount = req.body?.amount;
+  if (!isInt(amount) || amount === 0) {
+    return res.status(400).json({ error: 'مبلغ غير صالح' });
+  }
+  if (state.user.balance + amount < 0) {
+    return res.status(400).json({ error: 'الرصيد لا يمكن أن يصبح سالباً' });
+  }
+  state.user.balance += amount;
+  addTx(amount > 0 ? 'تعديل من الإدارة (+)' : 'تعديل من الإدارة (-)', amount);
+  res.json(state);
+});
+
+// ---- المستخدم ----
+app.post('/api/user/send', (req, res) => {
+  if (!state.features.send) {
+    return res.status(403).json({ error: 'الإرسال متوقف حالياً' });
+  }
+  const { to, amount } = req.body || {};
+  if (typeof to !== 'string' || !to.trim()) {
+    return res.status(400).json({ error: 'أدخل اسم المستلم' });
+  }
+  if (!isInt(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'مبلغ غير صالح' });
+  }
+  if (amount > state.user.balance) {
+    return res.status(400).json({ error: 'الرصيد غير كافٍ' });
+  }
+  state.user.balance -= amount;
+  addTx('إرسال إلى ' + to.trim().slice(0, 40), -amount);
+  res.json(state);
+});
+
+app.post('/api/user/deposit', (req, res) => {
+  if (!state.features.deposit) {
+    return res.status(403).json({ error: 'الشحن متوقف حالياً' });
+  }
+  const { amount } = req.body || {};
+  if (!isInt(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'مبلغ غير صالح' });
+  }
+  state.user.balance += amount;
+  addTx('شحن تجريبي', amount);
+  res.json(state);
+});
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`🚀 السيرفر يعمل حالياً على: http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log('Demo API on port ' + PORT));
